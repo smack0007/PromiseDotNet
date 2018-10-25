@@ -1,20 +1,17 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Threading.Tasks;
 
 namespace PromiseDotNet
 {
-    public class Promise<TValue, TReason>
+    public class Promise<TValue, TReason> : IThen<TValue, TReason>
     {
-        private static readonly Func<TValue, TValue> Identity = x => x;
-        private static readonly Func<TReason, TReason> Thrower = x => throw new PromiseException<TReason>(x);
+        public static readonly Func<TValue, TValue> Identity = x => x;
+        public static readonly Func<TReason, TReason> Thrower = x => throw new PromiseException<TReason>(x);
 
-        private object _lock = new object();
-        private TValue _value = default;
-        private TReason _reason = default;
-        private Exception _exception = null;
-        private Queue<Func<TValue, TValue>> _onFulfilledQueue;
-        private Queue<Func<TReason, TReason>> _onRejectedQueue;
+        private Task _task;
+        private TValue _value;
+        private TReason _reason;
+        private Exception _exception;
 
         public PromiseState State { get; private set; } = PromiseState.Pending;
 
@@ -23,22 +20,18 @@ namespace PromiseDotNet
             if (executor == null)
                 throw new ArgumentNullException(nameof(executor));
 
-            Task.Run(() =>
+            _task = Task.Run(() =>
             {
-                bool fulfilled = false;
-                TValue value = default;
-                TReason reason = default;
-                Exception exception = null;
-
                 void resolve(TValue x)
                 {
-                    value = x;
-                    fulfilled = true;
+                    _value = x;
+                    State = PromiseState.Fulfilled;
                 }
 
                 void reject(TReason x)
                 {
-                    reason = x;
+                    _reason = x;
+                    State = PromiseState.Rejected;
                 }
 
                 try
@@ -47,100 +40,51 @@ namespace PromiseDotNet
                 }
                 catch (Exception ex)
                 {
-                    exception = ex;         
-                }
-
-                lock (_lock)
-                {
-                    State = fulfilled ? PromiseState.Fulfilled : PromiseState.Rejected;
-                    _value = value;
-                    _exception = exception;
-
-                    if (fulfilled)
-                    {
-                        if (_onFulfilledQueue != null)
-                        {
-                            while (_onFulfilledQueue.Count > 0)
-                                _onFulfilledQueue.Dequeue().Invoke(value);
-                        }
-                    }
-                    else
-                    {
-                        if (_onRejectedQueue != null)
-                        {
-                            while (_onRejectedQueue.Count > 0)
-                                _onRejectedQueue.Dequeue().Invoke(reason);                            
-                        }
-                    }
-
-                    _onFulfilledQueue = null;
-                    _onRejectedQueue = null;
+                    _exception = ex;
+                    State = PromiseState.Rejected;
                 }
             });
         }
 
-        public Promise<TValue, TReason> Then(Action<TValue> onFulfilled = null, Action<TReason> onRejected = null)
+        private Promise(
+            PromiseState state,
+            TValue value = default,
+            TReason reason = default,
+            Exception exception = null)
         {
-            Func<TValue, TValue> onFullfilledWrapper = null;
-            Func<TReason, TReason> onRejectedWrapper = null;
-
-            if (onFulfilled != null)
-            {
-                onFullfilledWrapper = x =>
-                {
-                    onFulfilled(x);
-                    return x;
-                };
-            }
-
-            if (onRejected != null)
-            {
-                onRejectedWrapper = x =>
-                {
-                    onRejected(x);
-                    return x;
-                };
-            }
-
-            return Then(onFullfilledWrapper, onRejectedWrapper);
+            _task = Task.CompletedTask;
+            State = state;
+            _value = value;
+            _reason = reason;
+            _exception = exception;
         }
 
-        public Promise<TValue, TReason> Then(Func<TValue, TValue> onFulfilled = null, Func<TReason, TReason> onRejected = null)
+        public static Promise<TValue, TReason> Resolve(TValue value)
         {
-            lock (_lock)
+            return new Promise<TValue, TReason>(PromiseState.Fulfilled, value: value);
+        }
+
+        public static Promise<TValue, TReason> Reject(TReason reason)
+        {
+            return new Promise<TValue, TReason>(PromiseState.Rejected, reason: reason);
+        }
+
+        public IThen<TThenValue, TThenReason> Then<TThenValue, TThenReason>(
+            Func<TValue, TThenValue> onFulfilled,
+            Func<TReason, TThenReason> onRejected)
+        {
+            return new Promise<TThenValue, TThenReason>((resolve, reject) =>
             {
-                if (State != PromiseState.Pending)
+                _task.Wait();
+                if (State == PromiseState.Fulfilled)
                 {
-                    if (State == PromiseState.Fulfilled)
-                    {
-                        onFulfilled?.Invoke(_value);
-                    }
-                    else
-                    {
-                        onRejected?.Invoke(_reason);
-                    }
+                    resolve(onFulfilled(_value));
                 }
                 else
                 {
-                    if (onFulfilled != null)
-                    {
-                        if (_onFulfilledQueue == null)
-                            _onFulfilledQueue = new Queue<Func<TValue, TValue>>();
-
-                        _onFulfilledQueue.Enqueue(onFulfilled);
-                    }
-
-                    if (onRejected != null)
-                    {
-                        if (_onRejectedQueue == null)
-                            _onRejectedQueue = new Queue<Func<TReason, TReason>>();
-
-                        _onRejectedQueue.Enqueue(onRejected);
-                    }
+                    reject(onRejected(_reason));
                 }
-            }
-
-            return this;
+            });
         }
     }
 }
