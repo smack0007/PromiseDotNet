@@ -2,13 +2,22 @@
 
 namespace PromiseDotNet
 {
-    public class PromiseException<TReason> : Exception
+    public class PromiseException : Exception
     {
-        public TReason Reason { get; }
+        public static readonly PromiseException Default = new PromiseException();
 
-        public PromiseException(TReason reason)
+        public PromiseException()
         {
-            Reason = reason;
+        }
+
+        public PromiseException(string message)
+            : base(message)
+        {
+        }
+
+        public PromiseException(Exception innerException)
+            : base(innerException.Message, innerException)
+        {
         }
     }
 }

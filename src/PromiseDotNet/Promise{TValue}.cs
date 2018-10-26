@@ -3,40 +3,28 @@ using System.Threading.Tasks;
 
 namespace PromiseDotNet
 {
-    public class Promise<TValue, TReason>
+    public class Promise<TValue>
     {
         public static readonly Func<TValue, TValue> Identity = x => x;
-        public static readonly Func<TReason, TReason> Thrower = x => throw new PromiseException<TReason>(x);
+        public static readonly Func<Exception, TValue> Thrower = x => throw new PromiseException(x);
 
         private Task _task;
         private TValue _value;
-        private TReason _reason;
         private Exception _exception;
 
         public PromiseState State { get; private set; } = PromiseState.Pending;
 
-        public Promise(Action<Action<TValue>, Action<TReason>> executor)
+        public Promise(Func<TValue> executor)
         {
             if (executor == null)
                 throw new ArgumentNullException(nameof(executor));
 
             _task = Task.Run(() =>
             {
-                void resolve(TValue x)
-                {
-                    _value = x;
-                    State = PromiseState.Fulfilled;
-                }
-
-                void reject(TReason x)
-                {
-                    _reason = x;
-                    State = PromiseState.Rejected;
-                }
-
                 try
                 {
-                    executor(resolve, reject);                  
+                    _value = executor();
+                    State = PromiseState.Fulfilled;
                 }
                 catch (Exception ex)
                 {
@@ -49,27 +37,30 @@ namespace PromiseDotNet
         private Promise(
             PromiseState state,
             TValue value = default,
-            TReason reason = default,
             Exception exception = null)
         {
             _task = Task.CompletedTask;
             State = state;
             _value = value;
-            _reason = reason;
             _exception = exception;
         }
 
-        public static Promise<TValue, TReason> Resolve(TValue value)
+        public static Promise<TValue> Resolve(TValue value)
         {
-            return new Promise<TValue, TReason>(PromiseState.Fulfilled, value: value);
+            return new Promise<TValue>(PromiseState.Fulfilled, value: value);
         }
 
-        public static Promise<TValue, TReason> Reject(TReason reason)
+        public static Promise<TValue> Reject()
         {
-            return new Promise<TValue, TReason>(PromiseState.Rejected, reason: reason);
+            return new Promise<TValue>(PromiseState.Rejected, exception: PromiseException.Default);
         }
 
-        public Promise<TValue, TReason> Then(Action<TValue> onFulfilled)
+        public static Promise<TValue> Reject(Exception ex)
+        {
+            return new Promise<TValue>(PromiseState.Rejected, exception: ex);
+        }
+
+        public Promise<TValue> Then(Action<TValue> onFulfilled)
         {
             if (onFulfilled == null)
                 throw new ArgumentNullException(nameof(onFulfilled));
@@ -83,9 +74,9 @@ namespace PromiseDotNet
             return Then(onFullfilledWrapper, Thrower);
         }
 
-        public Promise<TValue, TReason> Then(
+        public Promise<TValue> Then(
             Action<TValue> onFulfilled,
-            Action<TReason> onRejected)
+            Action<Exception> onRejected)
         {
             if (onFulfilled == null)
                 throw new ArgumentNullException(nameof(onFulfilled));
@@ -93,30 +84,30 @@ namespace PromiseDotNet
             if (onRejected == null)
                 throw new ArgumentNullException(nameof(onRejected));
 
-            Func<TValue, TValue> onFullfilledWrapper = x =>
+            TValue onFullfilledWrapper(TValue x)
             {
                 onFulfilled(x);
                 return x;
-            };
+            }
 
-            Func<TReason, TReason> onRejectedWrapper = x =>
+            TValue onRejectedWrapper(Exception x)
             {
                 onRejected(x);
-                return x;
-            };
+                return default;
+            }
 
             return Then(onFullfilledWrapper, onRejectedWrapper);
         }
 
-        public Promise<TThenValue, TReason> Then<TThenValue>(
+        public Promise<TThenValue> Then<TThenValue>(
             Func<TValue, TThenValue> onFulfilled)
         {
-            return Then(onFulfilled, Thrower);
+            return Then(onFulfilled, Promise<TThenValue>.Thrower);
         }
 
-        public Promise<TThenValue, TThenReason> Then<TThenValue, TThenReason>(
+        public Promise<TThenValue> Then<TThenValue>(
             Func<TValue, TThenValue> onFulfilled,
-            Func<TReason, TThenReason> onRejected)
+            Func<Exception, TThenValue> onRejected)
         {
             if (onFulfilled == null)
                 throw new ArgumentNullException(nameof(onFulfilled));
@@ -124,29 +115,30 @@ namespace PromiseDotNet
             if (onRejected == null)
                 throw new ArgumentNullException(nameof(onRejected));
 
-            return new Promise<TThenValue, TThenReason>((resolve, reject) =>
+            return new Promise<TThenValue>(() =>
             {
                 _task.Wait();
+
                 if (State == PromiseState.Fulfilled)
                 {
-                    resolve(onFulfilled(_value));
+                    return onFulfilled(_value);
                 }
                 else
                 {
-                    reject(onRejected(_reason));
+                    return onRejected(_exception);
                 }
             });
         }
 
-        public Promise<TThenValue, TReason> Then<TThenValue>(
-            Func<TValue, Promise<TThenValue, TReason>> onFulfilled)
+        public Promise<TThenValue> Then<TThenValue>(
+            Func<TValue, Promise<TThenValue>> onFulfilled)
         {
-            return Then(onFulfilled, x => Promise<TThenValue, TReason>.Reject(x));
+            return Then(onFulfilled, x => Promise<TThenValue>.Reject(x));
         }
 
-        public Promise<TThenValue, TThenReason> Then<TThenValue, TThenReason>(
-            Func<TValue, Promise<TThenValue, TThenReason>> onFulfilled,
-            Func<TReason, Promise<TThenValue, TThenReason>> onRejected)
+        public Promise<TThenValue> Then<TThenValue>(
+            Func<TValue, Promise<TThenValue>> onFulfilled,
+            Func<Exception, Promise<TThenValue>> onRejected)
         {
             if (onFulfilled == null)
                 throw new ArgumentNullException(nameof(onFulfilled));
@@ -154,27 +146,23 @@ namespace PromiseDotNet
             if (onRejected == null)
                 throw new ArgumentNullException(nameof(onRejected));
 
-            return new Promise<TThenValue, TThenReason>((resolve, reject) =>
+            return new Promise<TThenValue>(() =>
             {
                 _task.Wait();
 
-                Promise<TThenValue, TThenReason> promise = null;
+                Promise<TThenValue> promise = null;
 
                 if (State == PromiseState.Fulfilled)
                     promise = onFulfilled(_value);
                 else
-                    promise = onRejected(_reason);                
+                    promise = onRejected(_exception);
 
                 promise._task.Wait();
 
-                if (promise.State == PromiseState.Fulfilled)
-                {
-                    resolve(promise._value);
-                }
-                else
-                {
-                    reject(promise._reason);
-                }
+                //if (promise.State == PromiseState.Fulfilled)
+                //    return promise._reason;
+
+                return promise._value;
             });
         }
     }

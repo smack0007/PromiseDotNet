@@ -1,3 +1,4 @@
+using System;
 using System.Threading;
 using Xunit;
 
@@ -5,7 +6,7 @@ namespace PromiseDotNet.Tests
 {
     public class PromiseTests
     {
-        private void WaitForPromise<TValue, TReason>(Promise<TValue, TReason> promise)
+        private void WaitForPromise<TValue>(Promise<TValue> promise)
         {
             while (promise.State == PromiseState.Pending)
                 Thread.Sleep(10);
@@ -17,7 +18,7 @@ namespace PromiseDotNet.Tests
             int resolvedValue = 0;
 
             WaitForPromise(
-                Promise<int, int>.Resolve(42).Then(
+                Promise<int>.Resolve(42).Then(
                     x => resolvedValue = x,
                     x => { }
                 )
@@ -29,16 +30,17 @@ namespace PromiseDotNet.Tests
         [Fact]
         public void RejectProducesRejectedPromise()
         {
-            int rejectedValue = 0;
+            Exception expected = new PromiseException();
+            Exception actual = null;
 
             WaitForPromise(
-                Promise<int, int>.Reject(42).Then(
+                Promise<int>.Reject(expected).Then(
                     x => { },
-                    x => rejectedValue = x
+                    x => actual = x
                 )
             );
 
-            Assert.Equal(42, rejectedValue);
+            Assert.Same(expected, actual);
         }
 
         [Fact]
@@ -46,7 +48,7 @@ namespace PromiseDotNet.Tests
         {
             int value = 0;
 
-            var promise = Promise<int, int>.Resolve(42);
+            var promise = Promise<int>.Resolve(42);
 
             promise.Then(x => x * 2);
 
@@ -63,7 +65,7 @@ namespace PromiseDotNet.Tests
             int value = 0;
 
             WaitForPromise(
-                Promise<int, int>.Resolve(42)
+                Promise<int>.Resolve(42)
                     .Then(x => x * 2)
                     .Then(x => x * 2)
                     .Then(x => value = x)
@@ -78,8 +80,8 @@ namespace PromiseDotNet.Tests
             int value = 0;
 
             WaitForPromise(
-                Promise<int, int>.Resolve(42)
-                    .Then(x => new Promise<int, int>((resolve, reject) => resolve(x * 2)))
+                Promise<int>.Resolve(42)
+                    .Then(x => new Promise<int>(() => x * 2))
                     .Then(x => x * 2)
                     .Then(x => value = x)
             );
