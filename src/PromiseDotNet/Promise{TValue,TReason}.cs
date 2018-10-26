@@ -71,47 +71,45 @@ namespace PromiseDotNet
 
         public Promise<TValue, TReason> Then(Action<TValue> onFulfilled)
         {
-            Func<TValue, TValue> onFullfilledWrapper = null;
+            if (onFulfilled == null)
+                throw new ArgumentNullException(nameof(onFulfilled));
 
-            if (onFulfilled != null)
+            Func<TValue, TValue> onFullfilledWrapper = x =>
             {
-                onFullfilledWrapper = x =>
-                {
-                    onFulfilled(x);
-                    return x;
-                };
-            }
+                onFulfilled(x);
+                return x;
+            };
 
             return Then(onFullfilledWrapper, Thrower);
         }
 
-        public Promise<TValue, TReason> Then(Action<TValue> onFulfilled, Action<TReason> onRejected)
+        public Promise<TValue, TReason> Then(
+            Action<TValue> onFulfilled,
+            Action<TReason> onRejected)
         {
-            Func<TValue, TValue> onFullfilledWrapper = null;
-            Func<TReason, TReason> onRejectedWrapper = null;
+            if (onFulfilled == null)
+                throw new ArgumentNullException(nameof(onFulfilled));
 
-            if (onFulfilled != null)
-            {
-                onFullfilledWrapper = x =>
-                {
-                    onFulfilled(x);
-                    return x;
-                };
-            }
+            if (onRejected == null)
+                throw new ArgumentNullException(nameof(onRejected));
 
-            if (onRejected != null)
+            Func<TValue, TValue> onFullfilledWrapper = x =>
             {
-                onRejectedWrapper = x =>
-                {
-                    onRejected(x);
-                    return x;
-                };
-            }
+                onFulfilled(x);
+                return x;
+            };
+
+            Func<TReason, TReason> onRejectedWrapper = x =>
+            {
+                onRejected(x);
+                return x;
+            };
 
             return Then(onFullfilledWrapper, onRejectedWrapper);
         }
 
-        public Promise<TThenValue, TReason> Then<TThenValue>(Func<TValue, TThenValue> onFulfilled)
+        public Promise<TThenValue, TReason> Then<TThenValue>(
+            Func<TValue, TThenValue> onFulfilled)
         {
             return Then(onFulfilled, Thrower);
         }
@@ -120,6 +118,12 @@ namespace PromiseDotNet
             Func<TValue, TThenValue> onFulfilled,
             Func<TReason, TThenReason> onRejected)
         {
+            if (onFulfilled == null)
+                throw new ArgumentNullException(nameof(onFulfilled));
+
+            if (onRejected == null)
+                throw new ArgumentNullException(nameof(onRejected));
+
             return new Promise<TThenValue, TThenReason>((resolve, reject) =>
             {
                 _task.Wait();
@@ -130,6 +134,46 @@ namespace PromiseDotNet
                 else
                 {
                     reject(onRejected(_reason));
+                }
+            });
+        }
+
+        public Promise<TThenValue, TReason> Then<TThenValue>(
+            Func<TValue, Promise<TThenValue, TReason>> onFulfilled)
+        {
+            return Then(onFulfilled, x => Promise<TThenValue, TReason>.Reject(x));
+        }
+
+        public Promise<TThenValue, TThenReason> Then<TThenValue, TThenReason>(
+            Func<TValue, Promise<TThenValue, TThenReason>> onFulfilled,
+            Func<TReason, Promise<TThenValue, TThenReason>> onRejected)
+        {
+            if (onFulfilled == null)
+                throw new ArgumentNullException(nameof(onFulfilled));
+
+            if (onRejected == null)
+                throw new ArgumentNullException(nameof(onRejected));
+
+            return new Promise<TThenValue, TThenReason>((resolve, reject) =>
+            {
+                _task.Wait();
+
+                Promise<TThenValue, TThenReason> promise = null;
+
+                if (State == PromiseState.Fulfilled)
+                    promise = onFulfilled(_value);
+                else
+                    promise = onRejected(_reason);                
+
+                promise._task.Wait();
+
+                if (promise.State == PromiseState.Fulfilled)
+                {
+                    resolve(promise._value);
+                }
+                else
+                {
+                    reject(promise._reason);
                 }
             });
         }

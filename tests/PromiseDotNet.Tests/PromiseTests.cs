@@ -71,5 +71,20 @@ namespace PromiseDotNet.Tests
 
             Assert.Equal(168, value);
         }
+
+        [Fact]
+        public void ThenCanReturnPromiseInFulfilled()
+        {
+            int value = 0;
+
+            WaitForPromise(
+                Promise<int, int>.Resolve(42)
+                    .Then(x => new Promise<int, int>((resolve, reject) => resolve(x * 2)))
+                    .Then(x => x * 2)
+                    .Then(x => value = x)
+            );
+
+            Assert.Equal(168, value);
+        }
     }
 }
