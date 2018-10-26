@@ -28,7 +28,7 @@ namespace HelloWorld
 
             Console.WriteLine("Waiting on promise...");
 
-            while (((Promise<int, string>)promise).State == PromiseState.Pending)
+            while (promise.State == PromiseState.Pending)
                 Thread.Sleep(100);
 
             Console.ReadKey();

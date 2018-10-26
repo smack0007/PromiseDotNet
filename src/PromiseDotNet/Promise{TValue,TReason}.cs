@@ -3,7 +3,7 @@ using System.Threading.Tasks;
 
 namespace PromiseDotNet
 {
-    public class Promise<TValue, TReason> : IThen<TValue, TReason>
+    public class Promise<TValue, TReason>
     {
         public static readonly Func<TValue, TValue> Identity = x => x;
         public static readonly Func<TReason, TReason> Thrower = x => throw new PromiseException<TReason>(x);
@@ -69,7 +69,54 @@ namespace PromiseDotNet
             return new Promise<TValue, TReason>(PromiseState.Rejected, reason: reason);
         }
 
-        public IThen<TThenValue, TThenReason> Then<TThenValue, TThenReason>(
+        public Promise<TValue, TReason> Then(Action<TValue> onFulfilled)
+        {
+            Func<TValue, TValue> onFullfilledWrapper = null;
+
+            if (onFulfilled != null)
+            {
+                onFullfilledWrapper = x =>
+                {
+                    onFulfilled(x);
+                    return x;
+                };
+            }
+
+            return Then(onFullfilledWrapper, Thrower);
+        }
+
+        public Promise<TValue, TReason> Then(Action<TValue> onFulfilled, Action<TReason> onRejected)
+        {
+            Func<TValue, TValue> onFullfilledWrapper = null;
+            Func<TReason, TReason> onRejectedWrapper = null;
+
+            if (onFulfilled != null)
+            {
+                onFullfilledWrapper = x =>
+                {
+                    onFulfilled(x);
+                    return x;
+                };
+            }
+
+            if (onRejected != null)
+            {
+                onRejectedWrapper = x =>
+                {
+                    onRejected(x);
+                    return x;
+                };
+            }
+
+            return Then(onFullfilledWrapper, onRejectedWrapper);
+        }
+
+        public Promise<TThenValue, TReason> Then<TThenValue>(Func<TValue, TThenValue> onFulfilled)
+        {
+            return Then(onFulfilled, Thrower);
+        }
+
+        public Promise<TThenValue, TThenReason> Then<TThenValue, TThenReason>(
             Func<TValue, TThenValue> onFulfilled,
             Func<TReason, TThenReason> onRejected)
         {

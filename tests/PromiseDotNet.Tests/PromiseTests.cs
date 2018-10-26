@@ -5,9 +5,9 @@ namespace PromiseDotNet.Tests
 {
     public class PromiseTests
     {
-        private void WaitForPromise<TValue, TReason>(IThen<TValue, TReason> promise)
+        private void WaitForPromise<TValue, TReason>(Promise<TValue, TReason> promise)
         {
-            while (((Promise<TValue, TReason>)promise).State == PromiseState.Pending)
+            while (promise.State == PromiseState.Pending)
                 Thread.Sleep(10);
         }
 
