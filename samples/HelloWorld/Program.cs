@@ -8,17 +8,17 @@ namespace HelloWorld
     {
         static void Main(string[] args)
         {
-            var promise = new Promise<int>(() =>
+            var promise = new Promise<int>((resolve, reject) =>
             {
                 Thread.Sleep(1000);
 
                 if ((new Random()).Next() % 2 == 0)
                 {
-                    return 42;
+                    resolve(42);
                 }
                 else
                 {
-                    throw new PromiseException("You are rejected.");
+                    reject(new InvalidOperationException("You are rejected."));
                 }
             })
             .Then(

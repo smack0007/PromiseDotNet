@@ -81,7 +81,7 @@ namespace PromiseDotNet.Tests
 
             WaitForPromise(
                 Promise<int>.Resolve(42)
-                    .Then(x => new Promise<int>(() => x * 2))
+                    .Then(x => new Promise<int>((resolve, reject) => resolve(x * 2)))
                     .Then(x => x * 2)
                     .Then(x => value = x)
             );
