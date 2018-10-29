@@ -14,6 +14,11 @@ namespace PromiseDotNet
 
         public PromiseState State { get; private set; } = PromiseState.Pending;
 
+        public Promise(Action<Action<T>> executor)
+            : this((resolve, reject) => executor(resolve))
+        {
+        }
+
         public Promise(Action<Action<T>, Action<Exception>> executor)
         {
             if (executor == null)
