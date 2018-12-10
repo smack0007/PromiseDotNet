@@ -31,6 +31,7 @@ namespace HelloWorld
             while (promise.State == PromiseState.Pending)
                 Thread.Sleep(100);
 
+            Console.WriteLine("Press any key to exit...");
             Console.ReadKey();
         }
     }

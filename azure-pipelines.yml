@@ -1,0 +1,33 @@
+resources:
+- repo: self
+
+queue:
+  name: Hosted VS2017
+
+steps:
+- task: DotNetCoreCLI@2
+  displayName: 'dotnet build'
+  inputs:
+    projects: PromiseDotNet.sln
+    arguments: '/v:d'
+
+- task: DotNetCoreCLI@2
+  displayName: 'dotnet test'
+  inputs:
+    command: test
+    projects: 'tests/PromiseDotNet.Tests/PromiseDotNet.Tests.csproj'
+    arguments: '-c Release'
+
+- task: DotNetCoreCLI@2
+  displayName: 'dotnet pack'
+  inputs:
+    command: pack
+    packagesToPack: src/PromiseDotNet/PromiseDotNet.csproj
+    buildProperties: 'Configuration=Release;BuildNumber=$(Build.BuildNumber)'
+
+- task: PublishBuildArtifacts@1
+  displayName: 'Publish Artifact: PromiseDotNet'
+  inputs:
+    artifactName: 'PromiseDotNet'
+
+

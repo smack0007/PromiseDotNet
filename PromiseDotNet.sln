@@ -3,8 +3,9 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 15
 VisualStudioVersion = 15.0.26124.0
 MinimumVisualStudioVersion = 15.0.26124.0
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "root", "root", "{99F86FD5-4DEE-4785-B3F5-C35EC4795CD6}"
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "PromiseDotNet", "PromiseDotNet", "{99F86FD5-4DEE-4785-B3F5-C35EC4795CD6}"
 	ProjectSection(SolutionItems) = preProject
+		azure-pipelines.yml = azure-pipelines.yml
 		Directory.Build.props = Directory.Build.props
 	EndProjectSection
 EndProject

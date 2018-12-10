@@ -3,15 +3,14 @@ using System.Threading.Tasks;
 
 namespace PromiseDotNet
 {
-    public class Promise<T>
+    public sealed class Promise<T>
     {
-        public static readonly Func<T, T> Identity = x => x;
         public static readonly Func<Exception, T> Thrower = x => throw new PromiseException(x);
 
         private Task _task;
         private T _value;
         private Exception _exception;
-
+         
         public PromiseState State { get; private set; } = PromiseState.Pending;
 
         public Promise(Action<Action<T>> executor)

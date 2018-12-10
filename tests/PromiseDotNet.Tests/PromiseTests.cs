@@ -44,6 +44,27 @@ namespace PromiseDotNet.Tests
         }
 
         [Fact]
+        public void ThenOnRejectCallbackProducesFulfilledPromise()
+        {
+            int expected = 42;
+            int actual = -1;
+
+            WaitForPromise(
+                Promise<int>.Reject(new PromiseException())
+                    .Then(
+                        x => 0,
+                        x => expected
+                    )
+                    .Then(
+                        x => actual = x,
+                        x => 0
+                    )
+            );
+
+            Assert.Equal(expected, actual);
+        }
+
+        [Fact]
         public void NonChainedThenCallsShouldAllReceiveTheSameValueForFulfilled()
         {
             int value = 0;
