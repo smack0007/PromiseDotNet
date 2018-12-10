@@ -5,7 +5,8 @@ namespace PromiseDotNet
 {
     public sealed class Promise
     {
-        public static readonly Action Identity = () => { };
+        public static readonly Action Empty = () => { };
+        public static readonly Action Identity = Empty;
         public static readonly Action<Exception> Thrower = x => throw new PromiseException(x);
 
         private Task _task;
@@ -147,5 +148,8 @@ namespace PromiseDotNet
                 }
             });
         }
+
+        public Promise Catch(Action<Exception> onRejected) =>
+            Then(Empty, onRejected);
     }
 }

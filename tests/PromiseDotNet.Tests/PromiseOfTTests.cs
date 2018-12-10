@@ -125,5 +125,32 @@ namespace PromiseDotNet.Tests
 
             Assert.Equal(168, value);
         }
+
+        [Fact]
+        public void CatchCalledWhenRejected()
+        {
+            Exception expected = new PromiseException();
+            Exception actual = null;
+
+            WaitForPromise(
+                Promise<int>.Reject(expected)
+                    .Catch(ex => actual = ex)
+            );
+
+            Assert.Same(expected, actual);
+        }
+
+        [Fact]
+        public void CatchNotCalledWhenResolved()
+        {
+            Exception actual = null;
+
+            WaitForPromise(
+                Promise<Exception>.Resolve(new PromiseException())
+                    .Catch(ex => actual = ex)
+            );
+
+            Assert.Null(actual);
+        }
     }
 }

@@ -5,6 +5,7 @@ namespace PromiseDotNet
 {
     public sealed class Promise<T>
     {
+        public static readonly Action<T> Empty = x => { };
         public static readonly Func<T, T> Identity = x => x;
         public static readonly Func<Exception, T> Thrower = x => throw new PromiseException(x);
 
@@ -194,5 +195,11 @@ namespace PromiseDotNet
                 }
             });
         }
+
+        public Promise<T> Catch(Action<Exception> onRejected) =>
+            Then(Empty, onRejected);
+
+        public Promise<TCatchValue> Catch<TCatchValue>(Func<Exception, TCatchValue> onRejected) =>
+            Then(x => default, onRejected);
     }
 }

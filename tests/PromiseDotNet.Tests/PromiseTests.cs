@@ -95,5 +95,32 @@ namespace PromiseDotNet.Tests
 
             Assert.True(wasFulfilled);
         }
+
+        [Fact]
+        public void CatchCalledWhenRejected()
+        {
+            Exception expected = new PromiseException();
+            Exception actual = null;
+
+            WaitForPromise(
+                Promise.Reject(expected)
+                    .Catch(ex => actual = ex)
+            );
+
+            Assert.Same(expected, actual);
+        }
+
+        [Fact]
+        public void CatchNotCalledWhenResolved()
+        {
+            Exception actual = null;
+
+            WaitForPromise(
+                Promise.Resolve()
+                    .Catch(ex => actual = ex)
+            );
+
+            Assert.Null(actual);
+        }
     }
 }
