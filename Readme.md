@@ -2,6 +2,4 @@
 
 # PromiseDotNet
 
-Promise implementation in .net following the aplus spec as much as possible. https://promisesaplus.com/
-
-This library is more of an academic exercise than a real library to be used in your own projects.
+Promise implementation in .NET.

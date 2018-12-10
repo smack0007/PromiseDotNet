@@ -29,7 +29,7 @@ namespace PromiseDotNet.Tests
         }
 
         [Fact]
-        public void ResolveProducesFulfilledPromise()
+        public void ResolveProducesResolvedPromise()
         {
             int resolvedValue = 0;
 
@@ -60,7 +60,7 @@ namespace PromiseDotNet.Tests
         }
 
         [Fact]
-        public void ThenOnRejectCallbackProducesFulfilledPromise()
+        public void ThenOnRejectCallbackProducesResolvedPromise()
         {
             int expected = 42;
             int actual = -1;
@@ -81,7 +81,7 @@ namespace PromiseDotNet.Tests
         }
 
         [Fact]
-        public void NonChainedThenCallsShouldAllReceiveTheSameValueForFulfilled()
+        public void NonChainedThenCallsShouldAllReceiveTheSameValueForResolved()
         {
             int value = 0;
 
@@ -97,7 +97,7 @@ namespace PromiseDotNet.Tests
         }
 
         [Fact]
-        public void ChainedThenCallsShouldReceiveNewValueForFulfilled()
+        public void ChainedThenCallsShouldReceiveNewValueForResolved()
         {
             int value = 0;
 
@@ -112,7 +112,7 @@ namespace PromiseDotNet.Tests
         }
 
         [Fact]
-        public void ThenCanReturnPromiseInFulfilled()
+        public void ThenCanReturnPromiseInResolved()
         {
             int value = 0;
 

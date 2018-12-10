@@ -29,18 +29,18 @@ namespace PromiseDotNet.Tests
         }
 
         [Fact]
-        public void ResolveProducesFulfilledPromise()
+        public void ResolveProducesResolvedPromise()
         {
-            bool wasFulfilled = false;
+            bool wasResolved = false;
 
             WaitForPromise(
                 Promise.Resolve().Then(
-                    () => wasFulfilled = true,
+                    () => wasResolved = true,
                     ex => { }
                 )
             );
 
-            Assert.True(wasFulfilled);
+            Assert.True(wasResolved);
         }
 
         [Fact]
@@ -60,11 +60,11 @@ namespace PromiseDotNet.Tests
         }
 
         [Fact]
-        public void ThenOnRejectCallbackProducesFulfilledPromise()
+        public void ThenOnRejectCallbackProducesResolvedPromise()
         {
             Exception expected = new PromiseException();
             Exception actual = null;
-            bool wasFulfilled = false;
+            bool wasResolved = false;
 
             WaitForPromise(
                 Promise.Reject(expected)
@@ -73,27 +73,27 @@ namespace PromiseDotNet.Tests
                         ex => actual = ex
                     )
                     .Then(
-                        () => wasFulfilled = true,
+                        () => wasResolved = true,
                         ex => { }
                     )
             );
 
             Assert.Equal(expected, actual);
-            Assert.True(wasFulfilled);
+            Assert.True(wasResolved);
         }
 
         [Fact]
-        public void ThenCanReturnPromiseInFulfilled()
+        public void ThenCanReturnPromiseInResolved()
         {
-            bool wasFulfilled = false;
+            bool wasResolved = false;
 
             WaitForPromise(
                 Promise.Resolve()
                     .Then(() => new Promise((resolve) => resolve()))
-                    .Then(() => wasFulfilled = true)
+                    .Then(() => wasResolved = true)
             );
 
-            Assert.True(wasFulfilled);
+            Assert.True(wasResolved);
         }
 
         [Fact]

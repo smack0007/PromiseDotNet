@@ -4,7 +4,7 @@
     {
         Pending,
 
-        Fulfilled,
+        Resolved,
 
         Rejected
     }

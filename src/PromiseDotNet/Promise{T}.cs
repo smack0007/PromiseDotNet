@@ -28,7 +28,7 @@ namespace PromiseDotNet
             void resolve(T value)
             {
                 _value = value;
-                State = PromiseState.Fulfilled;
+                State = PromiseState.Resolved;
             }
 
             void reject(Exception ex)
@@ -66,7 +66,7 @@ namespace PromiseDotNet
 
         public static Promise<T> Resolve(T value)
         {
-            return new Promise<T>(PromiseState.Fulfilled, value: value);
+            return new Promise<T>(PromiseState.Resolved, value: value);
         }
 
         public static Promise<T> Reject()
@@ -79,33 +79,33 @@ namespace PromiseDotNet
             return new Promise<T>(PromiseState.Rejected, exception: ex);
         }
 
-        public Promise<T> Then(Action<T> onFulfilled)
+        public Promise<T> Then(Action<T> onResolved)
         {
-            if (onFulfilled == null)
-                throw new ArgumentNullException(nameof(onFulfilled));
+            if (onResolved == null)
+                throw new ArgumentNullException(nameof(onResolved));
 
-            Func<T, T> onFullfilledWrapper = x =>
+            Func<T, T> onResolvedWrapper = x =>
             {
-                onFulfilled(x);
+                onResolved(x);
                 return x;
             };
 
-            return Then(onFullfilledWrapper, Thrower);
+            return Then(onResolvedWrapper, Thrower);
         }
 
         public Promise<T> Then(
-            Action<T> onFulfilled,
+            Action<T> onResolved,
             Action<Exception> onRejected)
         {
-            if (onFulfilled == null)
-                throw new ArgumentNullException(nameof(onFulfilled));
+            if (onResolved == null)
+                throw new ArgumentNullException(nameof(onResolved));
 
             if (onRejected == null)
                 throw new ArgumentNullException(nameof(onRejected));
 
-            T onFullfilledWrapper(T x)
+            T onResolvedWrapper(T x)
             {
-                onFulfilled(x);
+                onResolved(x);
                 return x;
             }
 
@@ -115,21 +115,21 @@ namespace PromiseDotNet
                 return default;
             }
 
-            return Then(onFullfilledWrapper, onRejectedWrapper);
+            return Then(onResolvedWrapper, onRejectedWrapper);
         }
 
         public Promise<TThenValue> Then<TThenValue>(
-            Func<T, TThenValue> onFulfilled)
+            Func<T, TThenValue> onResolved)
         {
-            return Then(onFulfilled, Promise<TThenValue>.Thrower);
+            return Then(onResolved, Promise<TThenValue>.Thrower);
         }
 
         public Promise<TThenValue> Then<TThenValue>(
-            Func<T, TThenValue> onFulfilled,
+            Func<T, TThenValue> onResolved,
             Func<Exception, TThenValue> onRejected)
         {
-            if (onFulfilled == null)
-                throw new ArgumentNullException(nameof(onFulfilled));
+            if (onResolved == null)
+                throw new ArgumentNullException(nameof(onResolved));
 
             if (onRejected == null)
                 throw new ArgumentNullException(nameof(onRejected));
@@ -140,9 +140,9 @@ namespace PromiseDotNet
 
                 try
                 {
-                    if (State == PromiseState.Fulfilled)
+                    if (State == PromiseState.Resolved)
                     {
-                        resolve(onFulfilled(_value));
+                        resolve(onResolved(_value));
                     }
                     else
                     {
@@ -157,17 +157,17 @@ namespace PromiseDotNet
         }
 
         public Promise<TThenValue> Then<TThenValue>(
-            Func<T, Promise<TThenValue>> onFulfilled)
+            Func<T, Promise<TThenValue>> onResolved)
         {
-            return Then(onFulfilled, x => Promise<TThenValue>.Reject(x));
+            return Then(onResolved, x => Promise<TThenValue>.Reject(x));
         }
 
         public Promise<TThenValue> Then<TThenValue>(
-            Func<T, Promise<TThenValue>> onFulfilled,
+            Func<T, Promise<TThenValue>> onResolved,
             Func<Exception, Promise<TThenValue>> onRejected)
         {
-            if (onFulfilled == null)
-                throw new ArgumentNullException(nameof(onFulfilled));
+            if (onResolved == null)
+                throw new ArgumentNullException(nameof(onResolved));
 
             if (onRejected == null)
                 throw new ArgumentNullException(nameof(onRejected));
@@ -178,14 +178,14 @@ namespace PromiseDotNet
 
                 Promise<TThenValue> promise = null;
 
-                if (State == PromiseState.Fulfilled)
-                    promise = onFulfilled(_value);
+                if (State == PromiseState.Resolved)
+                    promise = onResolved(_value);
                 else
                     promise = onRejected(_exception);
 
                 promise._task.Wait();
 
-                if (promise.State == PromiseState.Fulfilled)
+                if (promise.State == PromiseState.Resolved)
                 {
                     resolve(promise._value);
                 }
