@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Threading;
 using Xunit;
 
@@ -6,25 +6,41 @@ namespace PromiseDotNet.Tests
 {
     public class PromiseTests
     {
-        private void WaitForPromise<TValue>(Promise<TValue> promise)
+        private void WaitForPromise(Promise promise)
         {
             while (promise.State == PromiseState.Pending)
                 Thread.Sleep(10);
         }
 
         [Fact]
-        public void ResolveProducesFulfilledPromise()
+        public void NotCallingResolveOrRejectInExecutorCausesRejection()
         {
-            int resolvedValue = 0;
+            Exception actual = null;
 
             WaitForPromise(
-                Promise<int>.Resolve(42).Then(
-                    x => resolvedValue = x,
-                    x => { }
+                new Promise((resolve, reject) => { })
+                    .Then(
+                        () => { },
+                        ex => actual = ex
+                    )
+            );
+
+            Assert.Equal(PromiseException.NotSettled, actual);
+        }
+
+        [Fact]
+        public void ResolveProducesFulfilledPromise()
+        {
+            bool wasFulfilled = false;
+
+            WaitForPromise(
+                Promise.Resolve().Then(
+                    () => wasFulfilled = true,
+                    ex => { }
                 )
             );
 
-            Assert.Equal(42, resolvedValue);
+            Assert.True(wasFulfilled);
         }
 
         [Fact]
@@ -34,9 +50,9 @@ namespace PromiseDotNet.Tests
             Exception actual = null;
 
             WaitForPromise(
-                Promise<int>.Reject(expected).Then(
-                    x => { },
-                    x => actual = x
+                Promise.Reject(expected).Then(
+                    () => { },
+                    ex => actual = ex
                 )
             );
 
@@ -46,68 +62,38 @@ namespace PromiseDotNet.Tests
         [Fact]
         public void ThenOnRejectCallbackProducesFulfilledPromise()
         {
-            int expected = 42;
-            int actual = -1;
+            Exception expected = new PromiseException();
+            Exception actual = null;
+            bool wasFulfilled = false;
 
             WaitForPromise(
-                Promise<int>.Reject(new PromiseException())
+                Promise.Reject(expected)
                     .Then(
-                        x => 0,
-                        x => expected
+                        () => { },
+                        ex => actual = ex
                     )
                     .Then(
-                        x => actual = x,
-                        x => 0
+                        () => wasFulfilled = true,
+                        ex => { }
                     )
             );
 
             Assert.Equal(expected, actual);
-        }
-
-        [Fact]
-        public void NonChainedThenCallsShouldAllReceiveTheSameValueForFulfilled()
-        {
-            int value = 0;
-
-            var promise = Promise<int>.Resolve(42);
-
-            promise.Then(x => x * 2);
-
-            promise.Then(x => x * 2);
-
-            WaitForPromise(promise.Then(x => value = x));
-
-            Assert.Equal(42, value);
-        }
-
-        [Fact]
-        public void ChainedThenCallsShouldReceiveNewValueForFulfilled()
-        {
-            int value = 0;
-
-            WaitForPromise(
-                Promise<int>.Resolve(42)
-                    .Then(x => x * 2)
-                    .Then(x => x * 2)
-                    .Then(x => value = x)
-            );
-
-            Assert.Equal(168, value);
+            Assert.True(wasFulfilled);
         }
 
         [Fact]
         public void ThenCanReturnPromiseInFulfilled()
         {
-            int value = 0;
+            bool wasFulfilled = false;
 
             WaitForPromise(
-                Promise<int>.Resolve(42)
-                    .Then(x => new Promise<int>((resolve) => resolve(x * 2)))
-                    .Then(x => x * 2)
-                    .Then(x => value = x)
+                Promise.Resolve()
+                    .Then(() => new Promise((resolve) => resolve()))
+                    .Then(() => wasFulfilled = true)
             );
 
-            Assert.Equal(168, value);
+            Assert.True(wasFulfilled);
         }
     }
 }

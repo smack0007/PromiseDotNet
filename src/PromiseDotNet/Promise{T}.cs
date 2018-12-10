@@ -5,6 +5,7 @@ namespace PromiseDotNet
 {
     public sealed class Promise<T>
     {
+        public static readonly Func<T, T> Identity = x => x;
         public static readonly Func<Exception, T> Thrower = x => throw new PromiseException(x);
 
         private Task _task;
@@ -45,6 +46,9 @@ namespace PromiseDotNet
                 {
                     reject(ex);
                 }
+
+                if (State == PromiseState.Pending)
+                    reject(PromiseException.NotSettled);
             });
         }
 
