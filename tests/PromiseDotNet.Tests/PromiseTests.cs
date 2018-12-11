@@ -150,5 +150,47 @@ namespace PromiseDotNet.Tests
 
             Assert.True(finallyCalled);
         }
+
+        [Fact]
+        public void AllResolvesWhenAllPromisesResolve()
+        {
+            bool resolved = false;
+
+            WaitForPromise(
+                Promise.All(
+                        Promise.Resolve(),
+                        Promise.Resolve(),
+                        new Promise((resolve) =>
+                        {
+                            Thread.Sleep(10);
+                            resolve();
+                        })
+                    )
+                    .Then(() => resolved = true)
+            );
+
+            Assert.True(resolved);
+        }
+
+        [Fact]
+        public void AllRejectsWhenOnePromisesRejects()
+        {
+            bool rejected = false;
+
+            WaitForPromise(
+                Promise.All(
+                        new Promise((resolve, reject) =>
+                        {
+                            Thread.Sleep(10);
+                            reject(PromiseException.Default);
+                        }),
+                        Promise.Resolve(),
+                        Promise.Resolve()
+                    )
+                    .Catch(() => rejected = true)
+            );
+
+            Assert.True(rejected);
+        }
     }
 }

@@ -196,8 +196,14 @@ namespace PromiseDotNet
             });
         }
 
+        public Promise<T> Catch(Action onRejected) =>
+            Then(Empty, ex => onRejected());
+
         public Promise<T> Catch(Action<Exception> onRejected) =>
             Then(Empty, onRejected);
+
+        public Promise<TCatchValue> Catch<TCatchValue>(Func<TCatchValue> onRejected) =>
+            Then(x => default, ex => onRejected());
 
         public Promise<TCatchValue> Catch<TCatchValue>(Func<Exception, TCatchValue> onRejected) =>
             Then(x => default, onRejected);

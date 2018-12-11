@@ -1,4 +1,6 @@
 ﻿using System;
+using System.Collections.Generic;
+using System.Linq;
 using System.Threading.Tasks;
 
 namespace PromiseDotNet
@@ -58,6 +60,36 @@ namespace PromiseDotNet
             _task = Task.CompletedTask;
             State = state;
             _exception = exception;
+        }
+
+        public static Promise All(params Promise[] promises)
+        {
+            return new Promise((resolve, reject) => {
+                Promise rejected = null;
+
+                while (true)
+                {
+                    var pending = promises.Where(x => x.State == PromiseState.Pending).Select(x => x._task);
+
+                    if (!pending.Any())
+                        break;
+
+                    Task.WhenAny(pending).Wait();
+
+                    rejected = promises.FirstOrDefault(x => x.State == PromiseState.Rejected);
+                    if (rejected != null)
+                        break;
+                }
+
+                if (rejected == null)
+                {
+                    resolve();
+                }
+                else
+                {
+                    reject(rejected._exception);
+                }
+            });
         }
 
         public static Promise Resolve()
@@ -148,6 +180,9 @@ namespace PromiseDotNet
                 }
             });
         }
+
+        public Promise Catch(Action onRejected) =>
+            Then(Empty, ex => onRejected());
 
         public Promise Catch(Action<Exception> onRejected) =>
             Then(Empty, onRejected);
