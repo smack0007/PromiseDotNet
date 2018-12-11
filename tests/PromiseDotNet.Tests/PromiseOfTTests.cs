@@ -152,5 +152,33 @@ namespace PromiseDotNet.Tests
 
             Assert.Null(actual);
         }
+
+        [Fact]
+        public void FinallyCalledWhenResolved()
+        {
+            bool finallyCalled = false;
+
+            WaitForPromise(
+                Promise<int>.Resolve(42)
+                    .Then(x => Console.WriteLine("Then"))
+                    .Finally(() => finallyCalled = true)
+            );
+
+            Assert.True(finallyCalled);
+        }
+
+        [Fact]
+        public void FinallyCalledWhenRejected()
+        {
+            bool finallyCalled = false;
+
+            WaitForPromise(
+                Promise<int>.Reject()
+                    .Catch(ex => Console.WriteLine("Catch"))
+                    .Finally(() => finallyCalled = true)
+            );
+
+            Assert.True(finallyCalled);
+        }
     }
 }

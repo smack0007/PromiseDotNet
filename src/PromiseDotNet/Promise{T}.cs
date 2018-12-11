@@ -201,5 +201,8 @@ namespace PromiseDotNet
 
         public Promise<TCatchValue> Catch<TCatchValue>(Func<Exception, TCatchValue> onRejected) =>
             Then(x => default, onRejected);
+
+        public Promise<T> Finally(Action onFinally) =>
+            Then(x => onFinally(), ex => onFinally());
     }
 }

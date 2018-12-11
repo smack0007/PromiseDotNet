@@ -151,5 +151,8 @@ namespace PromiseDotNet
 
         public Promise Catch(Action<Exception> onRejected) =>
             Then(Empty, onRejected);
+
+        public Promise Finally(Action onFinally) =>
+            Then(() => onFinally(), ex => onFinally());
     }
 }
