@@ -155,18 +155,18 @@ namespace PromiseDotNet.Tests
         public void AllResolvesWhenAllPromisesResolve()
         {
             bool resolved = false;
-
+            
             WaitForPromise(
                 Promise.All(
-                        Promise.Resolve(),
-                        Promise.Resolve(),
-                        new Promise((resolve) =>
-                        {
-                            Thread.Sleep(10);
-                            resolve();
-                        })
-                    )
-                    .Then(() => resolved = true)
+                    Promise.Resolve(),
+                    Promise.Resolve(),
+                    new Promise((resolve) =>
+                    {
+                        Thread.Sleep(100);
+                        resolve();
+                    })
+                )
+                .Then(() => resolved = true)
             );
 
             Assert.True(resolved);
@@ -179,18 +179,77 @@ namespace PromiseDotNet.Tests
 
             WaitForPromise(
                 Promise.All(
-                        new Promise((resolve, reject) =>
-                        {
-                            Thread.Sleep(10);
-                            reject(PromiseException.Default);
-                        }),
-                        Promise.Resolve(),
-                        Promise.Resolve()
-                    )
-                    .Catch(() => rejected = true)
+                    new Promise((resolve, reject) =>
+                    {
+                        Thread.Sleep(10);
+                        reject(PromiseException.Default);
+                    }),
+                    Promise.Resolve(),
+                    Promise.Resolve()
+                )
+                .Catch(() => rejected = true)
             );
 
             Assert.True(rejected);
+        }
+
+        [Fact]
+        public void RaceResolvesWhenFirstPromiseResolves()
+        {
+            bool resolved = false;
+
+            WaitForPromise(
+                Promise.Race(
+                    new Promise((resolve, reject) =>
+                    {
+                        Thread.Sleep(10);
+                        resolve();
+                    }),
+                    new Promise((resolve, reject) =>
+                    {
+                        Thread.Sleep(500);
+                        reject(PromiseException.Default);
+                    }),
+                    new Promise((resolve, reject) =>
+                    {
+                        Thread.Sleep(500);
+                        reject(PromiseException.Default);
+                    })
+                )
+                .Then(() => resolved = true)
+            );
+
+            Assert.True(resolved);
+        }
+
+        [Fact]
+        public void RaceRejectsWhenFirstPromiseRejects()
+        {
+            var expected = new PromiseException("Rejected.");
+            Exception actual = null;
+
+            WaitForPromise(
+                Promise.Race(
+                    new Promise((resolve, reject) =>
+                    {
+                        Thread.Sleep(10);
+                        reject(expected);
+                    }),
+                    new Promise((resolve, reject) =>
+                    {
+                        Thread.Sleep(500);
+                        reject(PromiseException.Default);
+                    }),
+                    new Promise((resolve, reject) =>
+                    {
+                        Thread.Sleep(500);
+                        reject(PromiseException.Default);
+                    })
+                )
+                .Catch(ex => actual = ex)
+            );
+
+            Assert.Same(expected, actual);
         }
     }
 }

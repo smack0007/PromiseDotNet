@@ -180,5 +180,65 @@ namespace PromiseDotNet.Tests
 
             Assert.True(finallyCalled);
         }
+
+        [Fact]
+        public void RaceResolvesWhenFirstPromiseResolves()
+        {
+            int expected = 42;
+            int actual = 0;
+
+            WaitForPromise(
+                Promise<int>.Race(
+                    new Promise<int>((resolve, reject) =>
+                    {
+                        Thread.Sleep(10);
+                        resolve(expected);
+                    }),
+                    new Promise<int>((resolve, reject) =>
+                    {
+                        Thread.Sleep(500);
+                        resolve(1);
+                    }),
+                    new Promise<int>((resolve, reject) =>
+                    {
+                        Thread.Sleep(500);
+                        reject(PromiseException.Default);
+                    })
+                )
+                .Then(x => actual = x)
+            );
+
+            Assert.Equal(expected, actual);
+        }
+
+        [Fact]
+        public void RaceRejectsWhenFirstPromiseRejects()
+        {
+            var expected = new PromiseException("Rejected.");
+            Exception actual = null;
+
+            WaitForPromise(
+                Promise<int>.Race(
+                    new Promise<int>((resolve, reject) =>
+                    {
+                        Thread.Sleep(10);
+                        reject(expected);
+                    }),
+                    new Promise<int>((resolve, reject) =>
+                    {
+                        Thread.Sleep(500);
+                        resolve(42);
+                    }),
+                    new Promise<int>((resolve, reject) =>
+                    {
+                        Thread.Sleep(500);
+                        reject(PromiseException.Default);
+                    })
+                )
+                .Catch(ex => actual = ex)
+            );
+
+            Assert.Same(expected, actual);
+        }
     }
 }

@@ -65,20 +65,31 @@ namespace PromiseDotNet
         public static Promise All(params Promise[] promises)
         {
             return new Promise((resolve, reject) => {
-                Promise rejected = null;
+                Promise rejected = promises.FirstOrDefault(x => x.State == PromiseState.Rejected);
 
-                while (true)
+                if (rejected == null)
                 {
-                    var pending = promises.Where(x => x.State == PromiseState.Pending).Select(x => x._task);
+                    while (true)
+                    {
+                        var whenAnyTask = Task.WhenAny(
+                            promises
+                                .Where(x => x._task != Task.CompletedTask)
+                                .Select(x => x._task)
+                        );
 
-                    if (!pending.Any())
-                        break;
+                        whenAnyTask.Wait();
 
-                    Task.WhenAny(pending).Wait();
+                        var finishedPromise = promises.Single(x => x._task == whenAnyTask.Result);
+                        
+                        if (finishedPromise.State == PromiseState.Rejected)
+                        {
+                            rejected = finishedPromise;
+                            break;
+                        }
 
-                    rejected = promises.FirstOrDefault(x => x.State == PromiseState.Rejected);
-                    if (rejected != null)
-                        break;
+                        if (!promises.Any(x => x.State == PromiseState.Pending))
+                            break;
+                    }
                 }
 
                 if (rejected == null)
@@ -88,6 +99,35 @@ namespace PromiseDotNet
                 else
                 {
                     reject(rejected._exception);
+                }
+            });
+        }
+
+        public static Promise Race(params Promise[] promises)
+        {
+            return new Promise((resolve, reject) => {
+                var winner = promises.FirstOrDefault(x => x.State != PromiseState.Pending);
+
+                if (winner == null)
+                {
+                    var whenAnyTask = Task.WhenAny(
+                        promises
+                            .Where(x => x._task != Task.CompletedTask)
+                            .Select(x => x._task)
+                    );
+
+                    whenAnyTask.Wait();
+
+                    winner = promises.Single(x => x._task == whenAnyTask.Result);
+                }
+
+                if (winner.State == PromiseState.Resolved)
+                {
+                    resolve();
+                }
+                else
+                {
+                    reject(winner._exception);
                 }
             });
         }

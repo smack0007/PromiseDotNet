@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Linq;
 using System.Threading.Tasks;
 
 namespace PromiseDotNet
@@ -77,6 +78,35 @@ namespace PromiseDotNet
         public static Promise<T> Reject(Exception ex)
         {
             return new Promise<T>(PromiseState.Rejected, exception: ex);
+        }
+
+        public static Promise<T> Race(params Promise<T>[] promises)
+        {
+            return new Promise<T>((resolve, reject) => {
+                var winner = promises.FirstOrDefault(x => x.State != PromiseState.Pending);
+
+                if (winner == null)
+                {
+                    var whenAnyTask = Task.WhenAny(
+                        promises
+                            .Where(x => x._task != Task.CompletedTask)
+                            .Select(x => x._task)
+                    );
+
+                    whenAnyTask.Wait();
+
+                    winner = promises.Single(x => x._task == whenAnyTask.Result);
+                }
+
+                if (winner.State == PromiseState.Resolved)
+                {
+                    resolve(winner._value);
+                }
+                else
+                {
+                    reject(winner._exception);
+                }
+            });
         }
 
         public Promise<T> Then(Action<T> onResolved)
